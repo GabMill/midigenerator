@@ -1,0 +1,9 @@
+[package]
+name = "midigenerator"
+version = "0.1.0"
+authors = ["Gabriel Miller <Miller.GabrielD@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+ghakuf = "0.5.3"
+bitstream-io = "0.8"

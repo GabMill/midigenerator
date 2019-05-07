@@ -1,0 +1,52 @@
+//MIDI file generator. Creates MIDI files containing a desired chord or scale to drop into a
+//DAW to play a software instrument.
+
+use std::fs::File;
+use std::io::prelude::*;
+
+fn main() -> std::io::Result<()> {
+    {
+        let e3: u8 = 0x40;
+        let c3: u8 = 0x3C;
+        let g2: u8 = 0x37;
+        let c2: u8 = 0x30;
+        let mut file = File::create("Cmaj.mid")?;
+        // Write a slice of bytes to the file
+        file.write_all(&[0x4D, 0x54, 0x68, 0x64, //MThd
+            0x00, 0x00, 0x00, 0x06, //length
+            0x00, 0x01, //format
+            0x00, 0x02, //ntrks
+            0x01, 0xE0, //dividion
+            0x4D, 0x54, 0x72, 0x6B, //MTrk (#1)
+            0x00, 0x00, 0x00, 0x28, 0x00, //length
+            0xFF, 0x03, //Meta event - seq/track name
+            0x08, //length
+            0x43, 0x6C, 0x69, 0x70, 0x70, 0x69, 0x6E, 0x67, //name
+            0x00, 0xFF, 0x54, 0x05, //Meta event - SMPTE offset
+            0x40, 0x00, 0x00, 0x00, 0x00, 0x00, //hr mn se fr ff - should exp with removing this
+            0xFF, 0x58, 0x04, //Meta event - time signature
+            0x04, 0x02, 0x18, 0x08, 0x00, // nn dd cc bb
+            0xFF, 0x51, 0x03, //Meta event - set tempo
+            0x08, 0x66, 0x3A, 0x00, //microseconds per 1/4 note
+            0xFF, 0x2F, 0x00, //Meta event - end track
+            0x4D, 0x54, 0x72, 0x6B, //MTrk (#2)
+            0x00, 0x00, 0x00, 0x39, 0x00, //length
+            0xFF, 0x03, //Meta event - seq/track name
+            0x05, //length
+            0x53, 0x45, 0x52, 0x55, 0x4D, //name
+            0x00, 0xFF, 0x09, 0x07,
+            0x53, 0x65, 0x72, 0x75, 0x6D, 0x2D, 0x31,
+            0x00, 0x90, e3, 0x63, //∆-time, note on channel(1), note 40, velocity 63
+            0x00, 0x90, g2, 0x63, //∆-time, note on channel(1), note 37, velocity 63
+            0x00, 0x90, c3, 0x63, //∆-time, note on channel(1), note 3C, velocity 63
+            0x00, 0x90, c2, 0x63, //∆-time, note on channel(1), note 30, velocity 63
+            0x8E, 0x7F, 0x80, e3, 0x00, //∆-time (two bytes), note off channel(1), note 40, velocity 0
+            0x00, 0x80, c2, 0x00, //∆-time, note off channel(1), note 30, velocity 0
+            0x00, 0x80, c3, 0x00, //∆-time, note off channel(1), note 3C, velocity 0
+            0x00, 0x80, g2, 0x00, //∆-time, note off channel(1), note 37, velocity 0
+            0x00, 0xFF, 0x2F, 0x00 //End of track
+            ])?;
+    }
+
+    Ok(())
+}
