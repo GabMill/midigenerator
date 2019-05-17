@@ -5,18 +5,20 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 
-const C: u8 = 0x00;
-const CS: u8 = 0x01;
-const D: u8 = 0x02;
-const DS: u8 = 0x03;
-const E: u8 = 0x04;
-const F: u8 = 0x05;
-const FS: u8 = 0x06;
-const G: u8 = 0x07;
-const GS: u8 = 0x08;
-const A: u8 = 0x09;
-const AS: u8 = 0x0A;
-const B: u8 = 0x0B;
+enum Note {
+    C = 35,
+    CS,
+    D,
+    DS,
+    E,
+    F,
+    FS,
+    G,
+    GS,
+    A,
+    AS,
+    B
+}
 
 fn create_triad(mut file: File, root: u8) -> File {
     let fourth = root + 0x04 + 0x0C;
@@ -76,6 +78,8 @@ fn add_header(mut file: File) -> File {
 
 fn main() -> std::io::Result<()> {
     {
+        let note = Note::C;
+        let mut n = note as u8;
         let major = vec![0x02, 0x02, 0x01, 0x02, 0x02, 0x02, 0x01];
         let args: Vec<String> = env::args().collect();
         let mut file = File::create("Cmaj.mid")?;
@@ -83,8 +87,9 @@ fn main() -> std::io::Result<()> {
         // file = create_triad(file, C);
         // file = create_triad(file, E);
         // file = create_triad(file, GS);
-        file = create_scale(file, C);
-        file = create_scale(file, F);
+        for x in 0..12 {
+            file = create_scale(file, x+36)
+        }
     }
     Ok(())
 }
