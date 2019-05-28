@@ -5,22 +5,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 
-enum Note {
-    C = 35,
-    CS,
-    D,
-    DS,
-    E,
-    F,
-    FS,
-    G,
-    GS,
-    A,
-    AS,
-    B
-}
-
-fn create_triad(mut file: File, root: u8) -> File {
+fn create_triad(mut file: &File, root: u8) -> std::io::Result<()> {
     let fourth = root + 0x04 + 0x0C;
     let fifth = root + 0x07;
     file.write_all(&[
@@ -28,68 +13,55 @@ fn create_triad(mut file: File, root: u8) -> File {
         0x00, 0x00, 0x00, 0x25, //length
         0x00, 0x90, fourth, 0x63, //∆-time, note on channel(1), note 40, velocity 64
         0x00, 0x90, fifth, 0x63, //∆-time, note on channel(1), note 37, velocity 64
-        0x00, 0x90, (root + 0x0c), 0x63, //∆-time, note on channel(1), note 3C, velocity 64
+        0x00, 0x90, (root + 0x0C), 0x63, //∆-time, note on channel(1), note 3C, velocity 64
         0x00, 0x90, root, 0x63, //∆-time, note on channel(1), note 30, velocity 64
         0x83, 0x00, 0x80, fourth, 0x00, //∆-time (two bytes), note off channel(1), note 40, velocity 0
         0x00, 0x80, root, 0x00, //∆-time, note off channel(1), note 30, velocity 0
         0x00, 0x80, (root + 0x0C), 0x00, //∆-time, note off channel(1), note 3C, velocity 0
         0x00, 0x80, fifth, 0x00, //∆-time, note off channel(1), note 37, velocity 0
         0x00, 0xFF, 0x2F, 0x00 //End of track
-        ]);
-    return file
+        ])?;
+    Ok(())
 }
 
-fn create_scale(mut file: File, root: u8) -> File {
-    let mut note = root;
+fn create_scale(mut file: &File, scale: &Vec<u8>) -> std::io::Result<()> {
+    let length: u8 = scale.len() as u8;
     file.write_all(&[
         0x4D, 0x54, 0x72, 0x6B, //MTrk
-        0x00, 0x00, 0x00, 0x4C, //length
-        0x00, 0x90, note, 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, note, 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x02), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x02), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x04), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x04), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x05), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x05), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x07), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x07), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x09), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x09), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x0B), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x0B), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
-        0x00, 0x90, (note + 0x0C), 0x63, //∆-time, note on channel(1), note, velocity 64
-        0x83, 0x00, 0x80, (note + 0x0C), 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
+        0x00, 0x00, 0x00, length * 0x09 + 0x0C, //length
+        ])?;
+    for x in 0 .. scale.len() {
+        file.write_all(&[
+            0x00, 0x90, scale[x], 0x63, //∆-time, note on channel(1), note, velocity 64
+            0x83, 0x00, 0x80, scale[x], 0x00, //∆-time (two bytes), note off channel(1), note, velocity 0
+            ])?;
+    }
+    file.write_all(&[
         0x00, 0xFF, 0x2F, 0x00 //End of track
-        ]);
-    return file
+        ])?;
+    Ok(())
 }
 
-fn add_header(mut file: File) -> File {
+fn add_header(mut file: &File) -> std::io::Result<()> {
     file.write_all(&[
         0x4D, 0x54, 0x68, 0x64, //MThd
         0x00, 0x00, 0x00, 0x06, //length
         0x00, 0x00, //format
         0x00, 0x01, //ntrks
         0x00, 0x60, //division
-        ]);
-    return file
+        ])?;
+    Ok(())
 }
+
 
 fn main() -> std::io::Result<()> {
     {
-        let note = Note::C;
-        let mut n = note as u8;
-        let major = vec![0x02, 0x02, 0x01, 0x02, 0x02, 0x02, 0x01];
+        let default = vec![0x00, 0x02, 0x04, 0x05, 0x07, 0x09, 0x0B, 0x0C];
+        let transposed: Vec<u8> = default.iter().map(|x| x + 0x30 as u8).collect();
         let args: Vec<String> = env::args().collect();
-        let mut file = File::create("Cmaj.mid")?;
-        file = add_header(file);
-        // file = create_triad(file, C);
-        // file = create_triad(file, E);
-        // file = create_triad(file, GS);
-        for x in 0..12 {
-            file = create_scale(file, x+36)
-        }
+        let file = File::create("Cmaj.mid")?;
+        add_header(&file)?;
+        create_scale(&file, &transposed)?;
     }
     Ok(())
 }
