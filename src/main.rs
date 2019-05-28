@@ -28,7 +28,7 @@ fn create_scale(mut file: &File, scale: &Vec<u8>) -> std::io::Result<()> {
     let length: u8 = scale.len() as u8;
     file.write_all(&[
         0x4D, 0x54, 0x72, 0x6B, //MTrk
-        0x00, 0x00, 0x00, length * 0x09 + 0x0C, //length
+        0x00, 0x00, 0x00, (length * 0x09 + 0x0C), //length
         ])?;
     for x in 0 .. scale.len() {
         file.write_all(&[
@@ -57,7 +57,8 @@ fn add_header(mut file: &File) -> std::io::Result<()> {
 fn main() -> std::io::Result<()> {
     {
         let default = vec![0x00, 0x02, 0x04, 0x05, 0x07, 0x09, 0x0B, 0x0C];
-        let transposed: Vec<u8> = default.iter().map(|x| x + 0x30 as u8).collect();
+        let root_adjust: u8 = 0x30;
+        let transposed: Vec<u8> = default.iter().map(|x| x + root_adjust as u8).collect();
         let args: Vec<String> = env::args().collect();
         let file = File::create("Cmaj.mid")?;
         add_header(&file)?;
