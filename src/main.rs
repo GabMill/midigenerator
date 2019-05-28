@@ -5,20 +5,27 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::env;
 
-fn create_triad(mut file: &File, root: u8) -> std::io::Result<()> {
-    let fourth = root + 0x04 + 0x0C;
-    let fifth = root + 0x07;
+fn create_triad(mut file: &File, scale: &Vec<u8>) -> std::io::Result<()> {
     file.write_all(&[
         0x4D, 0x54, 0x72, 0x6B, //MTrk
         0x00, 0x00, 0x00, 0x25, //length
-        0x00, 0x90, fourth, 0x63, //∆-time, note on channel(1), note 40, velocity 64
-        0x00, 0x90, fifth, 0x63, //∆-time, note on channel(1), note 37, velocity 64
-        0x00, 0x90, (root + 0x0C), 0x63, //∆-time, note on channel(1), note 3C, velocity 64
-        0x00, 0x90, root, 0x63, //∆-time, note on channel(1), note 30, velocity 64
-        0x83, 0x00, 0x80, fourth, 0x00, //∆-time (two bytes), note off channel(1), note 40, velocity 0
-        0x00, 0x80, root, 0x00, //∆-time, note off channel(1), note 30, velocity 0
-        0x00, 0x80, (root + 0x0C), 0x00, //∆-time, note off channel(1), note 3C, velocity 0
-        0x00, 0x80, fifth, 0x00, //∆-time, note off channel(1), note 37, velocity 0
+        ])?;
+
+    file.write_all(&[
+        0x4D, 0x54, 0x72, 0x6B, //MTrk
+        0x00, 0x00, 0x00, 0x25, //length
+        0x00, 0x90, scale[0], 0x63, //∆-time, note on channel(1), note 40, velocity 64
+        0x00, 0x90, scale[4], 0x63, //∆-time, note on channel(1), note 37, velocity 64
+        0x00, 0x90, (scale[0] + 0x0C), 0x63, //∆-time, note on channel(1), note 3C, velocity 64
+        0x00, 0x90, (scale[2] + 0x0C), 0x63, //∆-time, note on channel(1), note 30, velocity 64
+        0x83, 0x00, 0x80, scale[0], 0x00, //∆-time (two bytes), note off channel(1), note 40, velocity 0
+        0x00, 0x80, scale[4], 0x00, //∆-time, note off channel(1), note 30, velocity 0
+        0x00, 0x80, (scale[0]+ 0x0C), 0x00, //∆-time, note off channel(1), note 3C, velocity 0
+        0x00, 0x80, (scale[2] + 0x0C), 0x00, //∆-time, note off channel(1), note 37, velocity 0
+        0x00, 0xFF, 0x2F, 0x00 //End of track
+        ])?;
+
+    file.write_all(&[
         0x00, 0xFF, 0x2F, 0x00 //End of track
         ])?;
     Ok(())
