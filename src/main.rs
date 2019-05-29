@@ -1,7 +1,6 @@
 //MIDI file generator. Creates MIDI files containing a desired chord or scale to drop into a
 //DAW to play a software instrument.
 
-use std::process;
 use std::fs::File;
 use std::io::prelude::*;
 use std::env;
@@ -24,33 +23,57 @@ enum Note {
 fn map_scale(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
     let mut ret: Vec<u8> = transposed_scale.to_vec();
     match mapping {
-        "major" => return ret,
-        "minor" => {
+        "major" | "ionian" => return ret,
+        "minor" | "natural_minor" | "aeolian"=> {
             ret[2] -= 0x01;
             ret[5] -= 0x01;
             ret[6] -= 0x01;
-            return ret;
         },
-        "natural minor" => {
+        "harmonic_minor" => {
+            ret[2] -= 0x01;
+            ret[5] -= 0x01;
+        },
+        "melodic_minor" => {
+            ret[2] -= 0x01;
+        },
+        "dorian" => {
+            ret[2] -= 0x01;
+            ret[6] -= 0x01;
+        },
+        "phrygian" => {
+            ret[1] -= 0x01;
             ret[2] -= 0x01;
             ret[5] -= 0x01;
             ret[6] -= 0x01;
-            return ret;
         },
-        "harmonic minor" => {
+        "lydian" => {
+            ret[3] += 0x01;
+        },
+        "mixolydian" => {
+            ret[6] -= 0x01;
+        },
+        "locrian" => {
+            ret[1] -= 0x01;
             ret[2] -= 0x01;
+            ret[4] -= 0x01;
             ret[5] -= 0x01;
-            return ret;
+            ret[6] -= 0x01;
         },
-        "melodic minor" => {
-            ret[2] -= 0x01;
-            return ret;
+        "pentatonic" | "major_pentatonic" => {
+            ret.remove(6);
+            ret.remove(2);
+        },
+        "minor_pentatonic" => {
+            ret.remove(6);
+            ret.remove(2);
+            ret[1] += 0x01;
+            ret[4] += 0x01;
         },
         _ => {
-            println!("Bad scale mapping, providing major scale");
-            return ret;
+            println!("Scale mapping \"{}\" not recognized, providing default major scale", mapping);
         },
     }
+    return ret;
 }
 
 fn transpose(template_scale: &Vec<u8>, root: &str) -> Vec<u8> {
@@ -69,7 +92,7 @@ fn transpose(template_scale: &Vec<u8>, root: &str) -> Vec<u8> {
         "As" => return ret.iter().map(|x| x + Note::As as u8).collect(),
         "B" => return ret.iter().map(|x| x + Note::B as u8).collect(),
         _ => {
-            println!("Bad root, providing C scale");
+            println!("\"{}\" root not recognized, providing C scale", root);
             return ret;
         },
     }
@@ -136,13 +159,13 @@ fn add_header(mut file: &File) -> std::io::Result<()> {
 fn print_usage_message() {
     println!("Too few arguments");
     println!("Usage: midigenerator (scale | chord) <key> <mapping>");
-    println!("Available scale mappings:\nmajor\n(natural) minor\nharmonic minor\nmelodic minor\n");
+    println!("Available scale mappings:\nall modes\nmajor\n(natural_)minor\nharmonic_minor\nmelodic_minor\n(major_)pentatonic\nminor_pentatonic");
 }
 
 fn main() -> std::io::Result<()> {
     {
         //Create file
-        let file = File::create("Cmaj.mid")?;
+        let file = File::create("out.mid")?;
         //Add header as described by MIDI standard (one track, one channel)
         add_header(&file)?;
         //Create "template scale", which is a C major scale starting at C0
@@ -159,7 +182,6 @@ fn main() -> std::io::Result<()> {
             "chord" => println!("Chord generation goes here"),
             "scale" => {
                 let transposed: Vec<u8> = transpose(&default, root);
-                println!("{:?}", transposed);
                 let mapped: Vec<u8> = map_scale(&transposed, map_to);
                 create_scale_track(&file, mapped)?;
             },
