@@ -76,7 +76,12 @@ fn map_scale(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
     return ret;
 }
 
-fn transpose(template_scale: &Vec<u8>, root: &str) -> Vec<u8> {
+fn map_chord(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
+    let mut ret: Vec<u8> = transposed_scale.to_vec();
+
+}
+
+fn transpose_scale(template_scale: &Vec<u8>, root: &str) -> Vec<u8> {
     let ret: Vec<u8> = template_scale.to_vec();
     match root {
         "C" => return ret,
@@ -98,11 +103,12 @@ fn transpose(template_scale: &Vec<u8>, root: &str) -> Vec<u8> {
     }
 }
 
-fn create_chord_track(mut file: &File, notes: &[u8]) -> std::io::Result<()> {
+fn create_chord_track(mut file: &File, notes: Vec<u8>) -> std::io::Result<()> {
+    let length: u8 = notes.len() as u8;
     //Write track header
     file.write_all(&[
         0x4D, 0x54, 0x72, 0x6B, //MTrk
-        0x00, 0x00, 0x00, 0x25, //length
+        0x00, 0x00, 0x00, (length * 8 + 0x10), //length
         ])?;
     //Write start values for provided notes
     for x in 0 .. notes.len() {
@@ -145,7 +151,7 @@ fn create_scale_track(mut file: &File, scale_temp: Vec<u8>) -> std::io::Result<(
     Ok(())
 }
 
-fn add_header(mut file: &File) -> std::io::Result<()> {
+fn add_MIDI_header(mut file: &File) -> std::io::Result<()> {
     file.write_all(&[
         0x4D, 0x54, 0x68, 0x64, //MThd
         0x00, 0x00, 0x00, 0x06, //length
@@ -157,9 +163,10 @@ fn add_header(mut file: &File) -> std::io::Result<()> {
 }
 
 fn print_usage_message() {
-    println!("Too few arguments");
-    println!("Usage: midigenerator (scale | chord) <key> <mapping>");
-    println!("Available scale mappings:\nall modes\nmajor\n(natural_)minor\nharmonic_minor\nmelodic_minor\n(major_)pentatonic\nminor_pentatonic");
+    print!("Too few arguments\n\n");
+    print!("Usage: midigenerator (scale | chord) <key> <mapping>\n\n");
+    print!("Available scale mappings:\n\nmajor\n(natural_)minor\n");
+    print!("harmonic_minor\nmelodic_minor\n(major_)pentatonic\nminor_pentatonic\n");
 }
 
 fn main() -> std::io::Result<()> {
@@ -179,9 +186,13 @@ fn main() -> std::io::Result<()> {
         let root = &args[2];
         let map_to = &args[3];
         match op.as_str() {
-            "chord" => println!("Chord generation goes here"),
+            "chord" => {
+                let transposed: Vec<u8> = transpose_scale(&default, root);
+                let mapped: Vec<u8> = map_chord(&transposed, map_to);
+                create_chord_track(&file, mapped)?
+            },
             "scale" => {
-                let transposed: Vec<u8> = transpose(&default, root);
+                let transposed: Vec<u8> = transpose_scale(&default, root);
                 let mapped: Vec<u8> = map_scale(&transposed, map_to);
                 create_scale_track(&file, mapped)?;
             },
