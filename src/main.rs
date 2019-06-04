@@ -78,6 +78,69 @@ fn map_scale(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
 
 fn map_chord(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
     let mut ret: Vec<u8> = transposed_scale.to_vec();
+    println!("{:?}", ret);
+    match mapping {
+        "maj" => {
+            ret.remove(7);
+            ret.remove(6);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "min" => {
+            ret[2] -= 1;
+            ret.remove(7);
+            ret.remove(6);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "dim" => {
+            ret[2] -= 1;
+            ret[4] -= 1;
+            ret.remove(7);
+            ret.remove(6);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "maj7" => {
+            ret.remove(7);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "min7" => {
+            ret[2] -= 1;
+            ret[6] -= 1;
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "7" => {
+            ret[6] -= 1;
+            ret.remove(7);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "minM7" => {
+            ret[2] -= 1;
+            ret.remove(7);
+            ret.remove(6);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        _ => {
+            println!("Provided chord mapping not recognized, returning major triad");
+            ret.remove(6);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+    }
+    ret
 
 }
 
@@ -151,7 +214,7 @@ fn create_scale_track(mut file: &File, scale_temp: Vec<u8>) -> std::io::Result<(
     Ok(())
 }
 
-fn add_MIDI_header(mut file: &File) -> std::io::Result<()> {
+fn add_midi_header(mut file: &File) -> std::io::Result<()> {
     file.write_all(&[
         0x4D, 0x54, 0x68, 0x64, //MThd
         0x00, 0x00, 0x00, 0x06, //length
@@ -171,12 +234,6 @@ fn print_usage_message() {
 
 fn main() -> std::io::Result<()> {
     {
-        //Create file
-        let file = File::create("out.mid")?;
-        //Add header as described by MIDI standard (one track, one channel)
-        add_header(&file)?;
-        //Create "template scale", which is a C major scale starting at C0
-        let default = vec![0x30, 0x32, 0x34, 0x35, 0x37, 0x39, 0x3B, 0x3C];
         let args: Vec<String> = env::args().collect();
         if args.len() < 4 {
             print_usage_message();
@@ -185,6 +242,16 @@ fn main() -> std::io::Result<()> {
         let op = &args[1];
         let root = &args[2];
         let map_to = &args[3];
+        let mut fname = String::new();
+        fname.push_str(root);
+        fname.push_str(map_to);
+        fname.push_str(" out.mid");
+        //Create file
+        let file = File::create(fname)?;
+        //Add header as described by MIDI standard (one track, one channel)
+        add_midi_header(&file)?;
+        //Create "template scale", which is a C major scale starting at C0
+        let default = vec![0x30, 0x32, 0x34, 0x35, 0x37, 0x39, 0x3B, 0x3C];
         match op.as_str() {
             "chord" => {
                 let transposed: Vec<u8> = transpose_scale(&default, root);
