@@ -2,3 +2,4 @@
 **/*.rs.bk
 *.mid
 *.DS_Store
+*.lock

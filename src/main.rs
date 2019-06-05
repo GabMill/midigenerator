@@ -78,7 +78,6 @@ fn map_scale(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
 
 fn map_chord(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
     let mut ret: Vec<u8> = transposed_scale.to_vec();
-    println!("{:?}", ret);
     match mapping {
         "maj" => {
             ret.remove(7);
@@ -87,6 +86,24 @@ fn map_chord(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
             ret.remove(3);
             ret.remove(1);
         }
+        "maj6" => {
+            ret.remove(7);
+            ret.remove(6);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "maj7" => {
+            ret.remove(7);
+            ret.remove(5);
+            ret.remove(3);
+            ret.remove(1);
+        }
+        "maj6add9" => {
+                    ret.remove(7);
+                    ret.remove(6);
+                    ret.remove(3);
+                    ret.remove(1);
+                }
         "min" => {
             ret[2] -= 1;
             ret.remove(7);
@@ -100,12 +117,6 @@ fn map_chord(transposed_scale: &Vec<u8>, mapping: &str) -> Vec<u8> {
             ret[4] -= 1;
             ret.remove(7);
             ret.remove(6);
-            ret.remove(5);
-            ret.remove(3);
-            ret.remove(1);
-        }
-        "maj7" => {
-            ret.remove(7);
             ret.remove(5);
             ret.remove(3);
             ret.remove(1);
@@ -227,44 +238,82 @@ fn add_midi_header(mut file: &File) -> std::io::Result<()> {
 
 fn print_usage_message() {
     print!("Too few arguments\n\n");
-    print!("Usage: midigenerator (scale | chord) <key> <mapping>\n\n");
+    print!("Usage: midigenerator (s(cale) | c(hord)) <key> <mapping>\n\n");
     print!("Available scale mappings:\n\nmajor\n(natural_)minor\n");
     print!("harmonic_minor\nmelodic_minor\n(major_)pentatonic\nminor_pentatonic\n");
 }
 
 fn main() -> std::io::Result<()> {
-    {
         let args: Vec<String> = env::args().collect();
-        if args.len() < 4 {
-            print_usage_message();
-            std::process::exit(0);
-        }
-        let op = &args[1];
-        let root = &args[2];
-        let map_to = &args[3];
-        let mut fname = String::new();
-        fname.push_str(root);
-        fname.push_str(map_to);
-        fname.push_str(" out.mid");
-        //Create file
-        let file = File::create(fname)?;
-        //Add header as described by MIDI standard (one track, one channel)
-        add_midi_header(&file)?;
         //Create "template scale", which is a C major scale starting at C0
         let default = vec![0x30, 0x32, 0x34, 0x35, 0x37, 0x39, 0x3B, 0x3C];
-        match op.as_str() {
-            "chord" => {
-                let transposed: Vec<u8> = transpose_scale(&default, root);
-                let mapped: Vec<u8> = map_chord(&transposed, map_to);
-                create_chord_track(&file, mapped)?
+        match args.len() {
+            1 | 2 => {
+                print_usage_message();
+                return Ok(())
             },
-            "scale" => {
-                let transposed: Vec<u8> = transpose_scale(&default, root);
-                let mapped: Vec<u8> = map_scale(&transposed, map_to);
-                create_scale_track(&file, mapped)?;
+            3 => {
+                let op = &args[1];
+                let root = &args[2];
+                let map_to = &args[3];
+                let mut fname = String::new();
+                fname.push_str(root);
+                fname.push_str(map_to);
+                fname.push_str(" out.mid");
+                //Create file
+                let file = File::create(&fname)?;
+                //Add header as described by MIDI standard (one track, one channel)
+                add_midi_header(&file)?;
+                match op.as_str() {
+                    "c" => {
+                        let transposed: Vec<u8> = transpose_scale(&default, root);
+                        let mapped: Vec<u8> = map_chord(&transposed, map_to);
+                        create_chord_track(&file, mapped)?
+                    },
+                    "s" => {
+                        let transposed: Vec<u8> = transpose_scale(&default, root);
+                        let mapped: Vec<u8> = map_scale(&transposed, map_to);
+                        create_scale_track(&file, mapped)?;
+                    },
+                    _ => {
+                        print_usage_message();
+                        return Ok(())
+                    },
+                }
+                println!("Wrote {:?}", &fname)
             },
-            _ => println!("Default"),
+            4 => {
+                let op = &args[1];
+                let root = &args[2];
+                let mut fname = String::new();
+                fname.push_str(root);
+                fname.push_str("maj out.mid");
+                //Create file
+                let file = File::create(&fname)?;
+                //Add header as described by MIDI standard (one track, one channel)
+                add_midi_header(&file)?;
+                match op.as_str() {
+                    "c" => {
+                        let transposed: Vec<u8> = transpose_scale(&default, root);
+                        let mapped: Vec<u8> = map_chord(&transposed, "maj");
+                        create_chord_track(&file, mapped)?
+                    },
+                    "s" => {
+                        let transposed: Vec<u8> = transpose_scale(&default, root);
+                        let mapped: Vec<u8> = map_scale(&transposed, "maj");
+                        create_scale_track(&file, mapped)?;
+                    },
+                    _ => {
+                        print_usage_message();
+                        return Ok(())
+                    },
+                }
+                println!("Wrote {:?}", &fname)
+            },
+            _ => {
+                print_usage_message();
+                return Ok(())
+            },
         }
-    }
-    Ok(())
+        Ok(())
 }
