@@ -5,7 +5,7 @@ software instruments.
 
 # Usage
 Midigenerator has two modes - it can create a chord or a scale. To create a
-C major chord for example, the usage would be
+C major chord for example, the usage would be:
 
 midigenerator c C major
 
